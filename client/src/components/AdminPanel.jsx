@@ -16,6 +16,10 @@ export default function AdminPanel() {
         time_limit: 30
     })
     const [expandedCategory, setExpandedCategory] = useState(null)
+    const [editingCategory, setEditingCategory] = useState(null)
+    const [editCategoryName, setEditCategoryName] = useState("")
+    const [editingQuestion, setEditingQuestion] = useState(null)
+    const [editQuestionData, setEditQuestionData] = useState({})
 
     useEffect(() => { fetchData() }, [])
 
@@ -59,6 +63,30 @@ export default function AdminPanel() {
             })
     }
 
+    const updateCategory = (id) => {
+        const originalName = categories.find(c => c.id === id)?.name
+
+        if (!editCategoryName.trim() || editCategoryName.trim() === originalName) {
+            setEditingCategory(null)
+            return
+        }
+
+        fetch(API_BASE_URL + "/categories/" + id, {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                name: editCategoryName.trim()
+            })
+        })
+            .then(r => r.json())
+            .then(() => {
+                setEditingCategory(null)
+                fetchData()
+            })
+    }
+
     const addQuestion = () => {
         if (!newQuestion.category_id || !newQuestion.question.trim() || !newQuestion.answer.trim())
             return
@@ -94,6 +122,44 @@ export default function AdminPanel() {
             .then(() => fetchData())
     }
 
+    const updateQuestion = (id) => {
+        const original = questions.find(q => q.id === id)
+
+        if (!editQuestionData.question?.trim() || !editQuestionData.answer?.trim()) {
+            setEditingQuestion(null)
+            return
+        }
+
+        // Skip API call if nothing changed
+        if (
+            editQuestionData.question.trim() === original.question && 
+            editQuestionData.answer.trim() === original.answer &&
+            Number(editQuestionData.difficulty) === original.difficulty &&
+            Number(editQuestionData.time_limit) === original.time_limit
+        ) {
+            setEditingQuestion(null)
+            return
+        }
+
+        fetch(API_BASE_URL + "/questions/" + id, {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                question: editQuestionData.question.trim(),
+                answer: editQuestionData.answer.trim(),
+                difficulty: Number(editQuestionData.difficulty),
+                time_limit: Number(editQuestionData.time_limit)
+            })
+        })
+        .then(r => r.json())
+        .then(() => {
+            setEditingQuestion(null)
+            fetchData()
+        })
+    }
+
 
 
     if (loading) return <div style={{ color: "#06b6d4", padding: 40, fontFamily: "monospace" }}>Loading...</div>
@@ -127,40 +193,92 @@ export default function AdminPanel() {
                         <button onClick={addCategory} className="btn-primary" style={{ padding: "8px 16px" }}>+ ADD</button>
                     </div>
 
-                    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                        {categories.map(cat => (
-                            <div key={cat.id}
-                                onClick={() => setSelectedCategory(selectedCategory === cat.id ? null : cat.id)}
-                                style={{
-                                    display: "flex", justifyContent: "space-between", alignItems: "center",
-                                    padding: "10px 14px", borderRadius: 8, cursor: "pointer",
-                                    background: selectedCategory === cat.id ? "rgba(6,182,212,0.15)" : "#1e293b",
-                                    border: selectedCategory === cat.id ? "1px solid #06b6d4" : "1px solid #334155",
-                                    transition: "all 0.15s"
-                                }}
-                            >
-                                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                                    <span style={{ color: "#06b6d4", fontWeight: 700 }}>{cat.name}</span>
-                                    <span style={{ color: "#475569", fontSize: 11 }}>
-                                        ({questions.filter(q => q.category_id === cat.id).length} questions)
-                                    </span>
-                                </div>
-                                <button
-                                    onClick={e => { e.stopPropagation(); deleteCategory(cat.id, cat.name) }}
-                                    style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", color: "#ef4444", borderRadius: 6, padding: "4px 8px", cursor: "pointer", fontFamily: "monospace", fontSize: 11 }}
-                                >
-                                    DELETE
-                                </button>
-                            </div>
-                        ))}
-                    </div>
+                    <div style={{display:"flex", flexDirection:"column", gap:6, maxHeight: 300, overflowY:"auto"}}>
+    {categories.map(cat => (
+        <div key={cat.id}
+            style={{
+                display:"flex", justifyContent:"space-between", alignItems:"center",
+                padding:"10px 14px", borderRadius:8,
+                background:"#1e293b",
+                border:"1px solid #334155",
+                transition:"all 0.15s"
+            }}
+        >
+            <div style={{display:"flex", alignItems:"center", flex:1, gap:10}}>
+                {editingCategory === cat.id ? (
+                    <input
+                        value={editCategoryName}
+                        onChange={e => setEditCategoryName(e.target.value)}
+                        onKeyDown={e => {
+                            if (e.key === "Enter") updateCategory(cat.id)
+                            if (e.key === "Escape") setEditingCategory(null)
+                        }}
+                        autoFocus
+                        style={{padding:"4px 8px", borderRadius:6, background:"#0f172a", color:"#06b6d4", border:"1px solid #06b6d4", outline:"none", fontFamily:"monospace", fontWeight:700, width:200}}
+                    />
+                ) : (
+                    <>
+                        <span style={{color:"#06b6d4", fontWeight:700}}>{cat.name}</span>
+                        <span style={{color:"#475569", fontSize:11}}>({questions.filter(q => q.category_id === cat.id).length})</span>
+                    </>
+                )}
+            </div>
+            <div style={{display:"flex", gap:6}}>
+                {editingCategory === cat.id ? (
+                    <>
+                        <button onClick={() => updateCategory(cat.id)}
+                            style={{background:"rgba(16,185,129,0.1)", border:"1px solid rgba(16,185,129,0.3)", color:"#10b981", borderRadius:6, padding:"4px 10px", cursor:"pointer", fontFamily:"monospace", fontSize:11}}>
+                            SAVE
+                        </button>
+                        <button onClick={() => setEditingCategory(null)}
+                            style={{background:"rgba(100,116,139,0.1)", border:"1px solid rgba(100,116,139,0.3)", color:"#94a3b8", borderRadius:6, padding:"4px 10px", cursor:"pointer", fontFamily:"monospace", fontSize:11}}>
+                            CANCEL
+                        </button>
+                    </>
+                ) : (
+                    <>
+                        <button onClick={() => { setEditingCategory(cat.id); setEditCategoryName(cat.name) }}
+                            style={{background:"rgba(6,182,212,0.1)", border:"1px solid rgba(6,182,212,0.3)", color:"#06b6d4", borderRadius:6, padding:"4px 10px", cursor:"pointer", fontFamily:"monospace", fontSize:11}}>
+                            EDIT
+                        </button>
+                        <button onClick={() => deleteCategory(cat.id, cat.name)}
+                            style={{background:"rgba(239,68,68,0.1)", border:"1px solid rgba(239,68,68,0.3)", color:"#ef4444", borderRadius:6, padding:"4px 10px", cursor:"pointer", fontFamily:"monospace", fontSize:11}}>
+                            DELETE
+                        </button>
+                    </>
+                )}
+            </div>
+        </div>
+    ))}
+</div>
                 </div>
 
                 {/* ── QUESTIONS ── */}
                 <div style={{ background: "#0f172a", border: "1px solid rgba(139,92,246,0.2)", borderRadius: 12, padding: 20 }}>
-                    <h2 style={{ fontSize: 16, fontWeight: 700, color: "#8b5cf6", marginBottom: 16 }}>
-                        QUESTIONS {selectedCategory ? `— ${categories.find(c => c.id === selectedCategory)?.name}` : "— All"}
-                    </h2>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                        <h2 style={{ fontSize: 16, fontWeight: 700, color: "#8b5cf6" }}>QUESTIONS</h2>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <label style={{ color: "#475569", fontSize: 11 }}>FILTER:</label>
+                            <select
+                                value={selectedCategory || ""}
+                                onChange={e => setSelectedCategory(e.target.value ? Number(e.target.value) : null)}
+                                style={{ padding: "6px 12px", borderRadius: 8, background: "#1e293b", color: "#e2e8f0", border: "1px solid #334155", fontFamily: "monospace", fontSize: 12 }}
+                            >
+                                <option value="">All Categories</option>
+                                {categories.map(cat => (
+                                    <option key={cat.id} value={cat.id}>{cat.name} ({questions.filter(q => q.category_id === cat.id).length})</option>
+                                ))}
+                            </select>
+                            {selectedCategory && (
+                                <button
+                                    onClick={() => setSelectedCategory(null)}
+                                    style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", color: "#ef4444", borderRadius: 6, padding: "4px 8px", cursor: "pointer", fontFamily: "monospace", fontSize: 11 }}
+                                >
+                                    ✕ CLEAR
+                                </button>
+                            )}
+                        </div>
+                    </div>
 
                     {/* ── Add Question Form ── */}
                     <div style={{ background: "#0f172a", border: "1px solid #334155", borderRadius: 8, padding: 16, marginBottom: 16 }}>
@@ -244,24 +362,96 @@ export default function AdminPanel() {
                                         </div>
 
                                         {expandedCategory === cat.id && (
-                                            <div style={{ display: "flex", flexDirection: "column", gap: 6, padding: 10 }}>
+                                            <div style={{ display: "flex", flexDirection: "column", gap: 6, padding: 10, maxHeight: 350, overflowY: "auto" }}>
                                                 {catQuestions.map(q => (
-                                                    <div key={q.id} style={{ background: "#0f172a", border: "1px solid #1e293b", borderRadius: 8, padding: 12 }}>
-                                                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", marginBottom: 6 }}>
-                                                            <span style={{ color: "#06b6d4", fontSize: 11, fontWeight: 700 }}>
-                                                                ${q.difficulty} • {q.time_limit}s
-                                                            </span>
-                                                            <button
-                                                                onClick={() => deleteQuestion(q.id)}
-                                                                style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", color: "#ef4444", borderRadius: 6, padding: "2px 8px", cursor: "pointer", fontFamily: "monospace", fontSize: 11 }}
-                                                            >
-                                                                DELETE
-                                                            </button>
-                                                        </div>
-                                                        <div style={{ color: "#e2e8f0", fontSize: 13, marginBottom: 4 }}>{q.question}</div>
-                                                        <div style={{ color: "#10b981", fontSize: 12 }}>Answer: {q.answer}</div>
-                                                    </div>
-                                                ))}
+    <div key={q.id} style={{background:"#0f172a", border:"1px solid #1e293b", borderRadius:8, padding:12}}>
+        {editingQuestion === q.id ? (
+            <>
+                <div style={{display:"flex", gap:8, marginBottom:8}}>
+                    <div>
+                        <label style={{display:"block", color:"#475569", fontSize:10, marginBottom:4}}>DIFFICULTY</label>
+                        <select
+                            value={editQuestionData.difficulty}
+                            onChange={e => setEditQuestionData({...editQuestionData, difficulty: e.target.value})}
+                            style={{padding:"6px 10px", borderRadius:6, background:"#1e293b", color:"#e2e8f0", border:"1px solid #334155", fontFamily:"monospace"}}
+                        >
+                            {[100,200,300,400,500].map(d => (
+                                <option key={d} value={d}>${d}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <div>
+                        <label style={{display:"block", color:"#475569", fontSize:10, marginBottom:4}}>TIME (s)</label>
+                        <input
+                            type="number"
+                            value={editQuestionData.time_limit}
+                            onChange={e => setEditQuestionData({...editQuestionData, time_limit: e.target.value})}
+                            style={{width:70, padding:"6px 10px", borderRadius:6, background:"#1e293b", color:"#e2e8f0", border:"1px solid #334155", fontFamily:"monospace"}}
+                        />
+                    </div>
+                </div>
+                <div style={{marginBottom:6}}>
+                    <label style={{display:"block", color:"#475569", fontSize:10, marginBottom:4}}>QUESTION</label>
+                    <textarea
+                        value={editQuestionData.question}
+                        onChange={e => setEditQuestionData({...editQuestionData, question: e.target.value})}
+                        rows={2}
+                        style={{width:"100%", padding:"6px 10px", borderRadius:6, background:"#1e293b", color:"#e2e8f0", border:"1px solid #334155", fontFamily:"monospace", resize:"vertical"}}
+                    />
+                </div>
+                <div style={{marginBottom:8}}>
+                    <label style={{display:"block", color:"#475569", fontSize:10, marginBottom:4}}>ANSWER</label>
+                    <textarea
+                        value={editQuestionData.answer}
+                        onChange={e => setEditQuestionData({...editQuestionData, answer: e.target.value})}
+                        rows={2}
+                        style={{width:"100%", padding:"6px 10px", borderRadius:6, background:"#1e293b", color:"#e2e8f0", border:"1px solid #334155", fontFamily:"monospace", resize:"vertical"}}
+                    />
+                </div>
+                <div style={{display:"flex", gap:6}}>
+                    <button onClick={() => updateQuestion(q.id)}
+                        style={{background:"rgba(16,185,129,0.1)", border:"1px solid rgba(16,185,129,0.3)", color:"#10b981", borderRadius:6, padding:"4px 10px", cursor:"pointer", fontFamily:"monospace", fontSize:11}}>
+                        SAVE
+                    </button>
+                    <button onClick={() => setEditingQuestion(null)}
+                        style={{background:"rgba(100,116,139,0.1)", border:"1px solid rgba(100,116,139,0.3)", color:"#94a3b8", borderRadius:6, padding:"4px 10px", cursor:"pointer", fontFamily:"monospace", fontSize:11}}>
+                        CANCEL
+                    </button>
+                </div>
+            </>
+        ) : (
+            <>
+                <div style={{display:"flex", justifyContent:"space-between", alignItems:"start", marginBottom:6}}>
+                    <span style={{color:"#06b6d4", fontSize:11, fontWeight:700}}>
+                        ${q.difficulty} • {q.time_limit}s
+                    </span>
+                    <div style={{display:"flex", gap:4}}>
+                        <button
+                            onClick={() => {
+                                setEditingQuestion(q.id)
+                                setEditQuestionData({
+                                    difficulty: q.difficulty,
+                                    question: q.question,
+                                    answer: q.answer,
+                                    time_limit: q.time_limit
+                                })
+                            }}
+                            style={{background:"rgba(6,182,212,0.1)", border:"1px solid rgba(6,182,212,0.3)", color:"#06b6d4", borderRadius:6, padding:"2px 8px", cursor:"pointer", fontFamily:"monospace", fontSize:11}}>
+                            EDIT
+                        </button>
+                        <button
+                            onClick={() => deleteQuestion(q.id)}
+                            style={{background:"rgba(239,68,68,0.1)", border:"1px solid rgba(239,68,68,0.3)", color:"#ef4444", borderRadius:6, padding:"2px 8px", cursor:"pointer", fontFamily:"monospace", fontSize:11}}>
+                            DELETE
+                        </button>
+                    </div>
+                </div>
+                <div style={{color:"#e2e8f0", fontSize:13, marginBottom:4}}>{q.question}</div>
+                <div style={{color:"#10b981", fontSize:12}}>Answer: {q.answer}</div>
+            </>
+        )}
+    </div>
+))}
                                             </div>
                                         )}
                                     </div>

@@ -1,15 +1,16 @@
-import { useState } from 'react'
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import JeopardyGame from './components/JeopardyGame'
+import AdminPanel from './components/AdminPanel'
 
 function App() {
-  const [count, setCount] = useState(0)
 
   return (
-    <>
-     <div>
-      <JeopardyGame />
-     </div>
-    </>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<JeopardyGame /> } />
+        <Route path="/admin" element={<AdminPanel /> } />
+      </Routes>
+    </BrowserRouter>
   )
 }
 
