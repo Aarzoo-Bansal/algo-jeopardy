@@ -141,8 +141,8 @@ export default function JeopardyGame() {
         <div style={{position:"relative",zIndex:2,maxWidth:850,margin:"0 auto"}}>
           <div style={{textAlign:"center",marginBottom:40,paddingTop:20}}>
             <div style={{display:"inline-block",padding:"6px 18px",borderRadius:20,background:"#0b1a24",border:"1px solid rgba(6,182,212,0.2)",fontSize:11,color:"#06b6d4",letterSpacing:3,marginBottom:16}}>ALGORITHMS & DATA STRUCTURES</div>
-            <h1 style={{fontSize:56,fontWeight:900,lineHeight:1,background:"linear-gradient(135deg,#06b6d4 0%,#8b5cf6 40%,#ec4899 80%,#f59e0b 100%)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",marginBottom:8,letterSpacing:-1,animation:"glowShift 6s ease-in-out infinite"}}>ALGO JEOPARDY</h1>
-            <p style={{color:"#9ba7b8",fontSize:13, background:"#0b1a24", display: "inline-block"}}>{"> initialize_game() // v2.0"}</p>
+            <h1 style={{fontSize:"clamp(28px, 8vw, 56px)",fontWeight:900,lineHeight:1,background:"linear-gradient(135deg,#06b6d4 0%,#8b5cf6 40%,#ec4899 80%,#f59e0b 100%)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",marginBottom:16,letterSpacing:-1,animation:"glowShift 6s ease-in-out infinite"}}>ALGO JEOPARDY</h1>
+            <p style={{color:"#9ba7b8",fontSize:"11px", background:"#0b1a24", display: "inline", boxDecorationBreak: "clone", padding: "6px 18px", borderRadius: "20px", letterSpacing: "3px"}}>{"> initialize_game() // v2.0"}</p>
             {dbError && <p style={{marginTop:8,fontSize:12,color:"#f59e0b"}}>⚠ {dbError}</p>}
           </div>
 
