@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect } from "react";
 import ParticlesBg from './ParticlesBg'
 import SpinWheel from './SpinWheel'
 import ConfettiBurst from './ConfettiBurst'
