@@ -30,7 +30,7 @@ const CAT_COLORS = ["#06b6d4","#8b5cf6","#ec4899","#f59e0b","#10b981","#3b82f6"]
 // MAIN GAME
 // =====================================================
 export default function JeopardyGame() {
-  const [gameState, setGameState] = useState("setup");
+  const [gameState, setGameState] = useState("config");
   const [teams, setTeams] = useState([]);
   const [newTeamName, setNewTeamName] = useState("");
   const [selectedAvatar, setSelectedAvatar] = useState(AVATARS[0]);
@@ -51,6 +51,15 @@ export default function JeopardyGame() {
   const [scorePops, setScorePops] = useState({});
   const [boardReady, setBoardReady] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
+  const [selectedCategories, setSelectedCategories] = useState([])
+  const [selectedDifficulties, setSelectedDifficulties] = useState([100, 200, 300, 400, 500])
+  const [gameTitle, setGameTitle] = useState("JEOPARDY")
+
+  useEffect(() => {
+    if (gameState === "config") {
+        setSelectedCategories(categories.map(c => c))
+    }
+}, [gameState, categories])
 
   useEffect(() => {
     if (!API_BASE_URL) return;
@@ -72,7 +81,7 @@ export default function JeopardyGame() {
     setBoardReady(false);
   }, [gameState]);
 
-  const totalQ = categories.length * QUESTIONS_PER_CATEGORY;
+  const totalQ = categories.length * (gameState === "playing" ? selectedDifficulties.length : 5);
   const answeredQ = Object.keys(usedQuestions).length;
   const gameComplete = answeredQ === totalQ && gameState === "playing";
   const availableTeams = teams.filter(t => !teamsPlayedThisRound.some(p => p.name === t.name));
@@ -97,7 +106,22 @@ export default function JeopardyGame() {
     setScorePops(p => ({...p, [i]: amt}));
     setTimeout(() => setScorePops(p => { const n = {...p}; delete n[i]; return n; }), 800);
   };
-  const startGame = () => { if (teams.length > 0) setGameState("playing"); };
+  const startGame = () => { setGameState("teams"); };
+  const startPlaying = () => {
+    if (teams.length === 0) return
+    const filtered = {}
+    selectedCategories.forEach(cat => {
+        filtered[cat] = {}
+        selectedDifficulties.forEach(d => {
+            if (questions[cat]?.[d]) {
+                filtered[cat][d] = questions[cat][d]
+            }
+        })
+    })
+    setQuestions(filtered)
+    setCategories(selectedCategories)
+    setGameState("playing")
+}
   const selectQuestion = (cat, pts) => {
     const key = cat + "-" + pts;
     if (!usedQuestions[key] && questions[cat] && questions[cat][pts]) {
@@ -114,7 +138,7 @@ export default function JeopardyGame() {
     setCurrentQuestion(null); setShowAnswer(false); setTimerRunning(false);
   };
   const resetGame = () => {
-    setGameState("setup"); setTeams([]); setUsedQuestions({});
+    setGameState("config"); setTeams([]); setUsedQuestions({});
     setCurrentQuestion(null); setShowAnswer(false); setShowWinner(false);
     setTeamsPlayedThisRound([]); setCurrentTeam(null); setShowConfetti(false);
   };
@@ -133,7 +157,7 @@ export default function JeopardyGame() {
 
 
   // ======== SETUP SCREEN ========
-  if (gameState === "setup") {
+  if (gameState === "teams") {
     return (
       <div style={{minHeight:"100vh",background:"#080c16",padding:24,color:"#e2e8f0",fontFamily:"monospace",position:"relative",overflow:"hidden"}}>
         <ParticlesBg />
@@ -141,7 +165,7 @@ export default function JeopardyGame() {
         <div style={{position:"relative",zIndex:2,maxWidth:850,margin:"0 auto"}}>
           <div style={{textAlign:"center",marginBottom:40,paddingTop:20}}>
             <div style={{display:"inline-block",padding:"6px 18px",borderRadius:20,background:"#0b1a24",border:"1px solid rgba(6,182,212,0.2)",fontSize:11,color:"#06b6d4",letterSpacing:3,marginBottom:16}}>ALGORITHMS & DATA STRUCTURES</div>
-            <h1 style={{fontSize:"clamp(28px, 8vw, 56px)",fontWeight:900,lineHeight:1,background:"linear-gradient(135deg,#06b6d4 0%,#8b5cf6 40%,#ec4899 80%,#f59e0b 100%)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",marginBottom:16,letterSpacing:-1,animation:"glowShift 6s ease-in-out infinite"}}>ALGO JEOPARDY</h1>
+            <h1 className="gradient-text" style={{fontSize:"clamp(28px, 8vw, 56px)",fontWeight:900,lineHeight:1,background:"linear-gradient(135deg,#06b6d4 0%,#8b5cf6 25%,#ec4899 50%,#f59e0b 75%,#06b6d4 100%)",backgroundSize:"200% 200%", marginBottom:16,letterSpacing:-1,animation:"glowShift 6s ease-in-out infinite"}}>{gameTitle || "JEOPARDY"}</h1>
             <p style={{color:"#9ba7b8",fontSize:"11px", background:"#0b1a24", display: "inline", boxDecorationBreak: "clone", padding: "6px 18px", borderRadius: "20px", letterSpacing: "3px"}}>{"> initialize_game() // v2.0"}</p>
             {dbError && <p style={{marginTop:8,fontSize:12,color:"#f59e0b"}}>⚠ {dbError}</p>}
           </div>
@@ -186,25 +210,249 @@ export default function JeopardyGame() {
             </div>
           )}
 
-          <button onClick={startGame} disabled={teams.length===0||dbLoading} style={{width:"100%",padding:"16px 0",borderRadius:12,border:"none",cursor:teams.length===0?"not-allowed":"pointer",background:teams.length===0?"#1e293b":"linear-gradient(135deg,#ec4899,#8b5cf6,#06b6d4)",color:teams.length===0?"#475569":"#fff",fontSize:18,fontWeight:900,fontFamily:"monospace",transition:"all 0.3s",boxShadow:teams.length>0?"0 8px 32px rgba(139,92,246,0.3)":"none"}}>
-            {teams.length===0 ? "// add teams to start" : dbLoading ? "LOADING..." : "START_GAME()  \u25B6"}
-          </button>
+          <div style={{display:"flex", gap:10}}>
+    <button onClick={() => setGameState("config")}
+        style={{flex:1, padding:"14px 0", borderRadius:12, border:"1px solid #334155", background:"transparent", color:"#94a3b8", fontSize:16, fontWeight:700, fontFamily:"monospace", cursor:"pointer"}}>
+        ← BACK
+    </button>
+    <button onClick={startPlaying} disabled={teams.length === 0}
+        style={{flex:2, padding:"14px 0", borderRadius:12, border:"none",
+            cursor: teams.length === 0 ? "not-allowed" : "pointer",
+            background: teams.length === 0 ? "#1e293b" : "linear-gradient(135deg,#ec4899,#8b5cf6,#06b6d4)",
+            color: teams.length === 0 ? "#475569" : "#fff",
+            fontSize:18, fontWeight:900, fontFamily:"monospace", transition:"all 0.3s",
+            boxShadow: teams.length > 0 ? "0 8px 32px rgba(139,92,246,0.3)" : "none"
+        }}>
+        START GAME ▶
+    </button>
+</div>
         </div>
       </div>
     );
   }
+  // ======== CONFIG SCREEN ========
 
+if (gameState === "config") {
+//   <div style={{background:"linear-gradient(145deg,rgba(15,23,42,0.8),rgba(30,41,59,0.6))", border:"1px solid rgba(16,185,129,0.2)", borderRadius:16, padding:28, marginBottom:20}}>
+//     <div style={{display:"flex", alignItems:"center", gap:8, marginBottom:16}}>
+//         <div style={{width:8, height:8, borderRadius:"50%", background:"#10b981"}}/>
+//         <span style={{fontSize:15, fontWeight:700, color:"#10b981"}}>GAME TITLE</span>
+//     </div>
+//     <input
+//         type="text"
+//         value={gameTitle}
+//         onChange={e => setGameTitle(e.target.value)}
+//         placeholder="Enter game title..."
+//         style={{width:"100%", padding:"12px 16px", borderRadius:10, background:"#0f172a", color:"#e2e8f0", border:"1px solid rgba(16,185,129,0.2)", outline:"none", fontFamily:"monospace", fontSize:18, fontWeight:700}}
+//     />
+//     <p style={{color:"#475569", fontSize:11, marginTop:8}}>This title appears on the game board header</p>
+// </div>
+    // Count questions per category per difficulty from raw API data
+    const getCategoryQuestionCounts = (catName) => {
+        const catQuestions = Object.keys(questions[catName] || {})
+        return catQuestions.length
+    }
+
+    const getDifficultyCount = (catName, diff) => {
+        return questions[catName]?.[diff] ? 1 : 0
+    }
+
+    const totalSelected = selectedCategories.length * selectedDifficulties.length
+
+    return (
+        <div style={{minHeight:"100vh", background:"#080c16", padding:24, color:"#e2e8f0", fontFamily:"monospace", position:"relative", overflow:"hidden"}}>
+            <ParticlesBg />
+            <div className="scanlines" />
+            <div style={{position:"relative", zIndex:2, maxWidth:850, margin:"0 auto"}}>
+                <div style={{textAlign:"center", marginBottom:32, paddingTop:20}}>
+                    <div style={{display:"inline-block", padding:"6px 18px", borderRadius:20, background:"#0b1a24", border:"1px solid rgba(139,92,246,0.2)", fontSize:11, color:"#8b5cf6", letterSpacing:3, marginBottom:16}}>
+                        GAME SETUP
+                    </div>
+                    <h1 className="gradient-text" style={{fontSize:"clamp(28px, 8vw, 52px)",fontWeight:900,lineHeight:1,background:"linear-gradient(135deg,#06b6d4 0%,#8b5cf6 25%,#ec4899 50%,#f59e0b 75%,#06b6d4 100%)",backgroundSize:"200% 200%", marginBottom:16,letterSpacing:-1,animation:"glowShift 6s ease-in-out infinite"}}>
+                      Configure Game
+                    </h1>
+                    <p style={{color:"#9ba7b8",fontSize:"11px", background:"#0b1a24", display: "inline", boxDecorationBreak: "clone", padding: "6px 18px", borderRadius: "20px", letterSpacing: "3px"}}>Select title, categories and difficulty levels for this session</p>
+                </div>
+
+                {/* Game Title */}
+                <div style={{background:"linear-gradient(145deg,rgba(15,23,42,0.8),rgba(30,41,59,0.6))", border:"1px solid rgba(16,185,129,0.2)", borderRadius:16, padding:28, marginBottom:20}}>
+                    <div style={{display:"flex", alignItems:"center", gap:8, marginBottom:16}}>
+                        <div style={{width:8, height:8, borderRadius:"50%", background:"#10b981"}}/>
+                        <span style={{fontSize:15, fontWeight:700, color:"#10b981"}}>GAME TITLE</span>
+                    </div>
+                    <input
+                        type="text"
+                        value={gameTitle}
+                        onChange={e => setGameTitle(e.target.value)}
+                        placeholder="Enter game title..."
+                        style={{width:"100%", padding:"12px 16px", borderRadius:10, background:"#0f172a", color:"#e2e8f0", border:"1px solid rgba(16,185,129,0.2)", outline:"none", fontFamily:"monospace", fontSize:18, fontWeight:700}}
+                    />
+                    <p style={{color:"#475569", fontSize:11, marginTop:8}}>This title appears on the game board header</p>
+                </div>
+
+                {/* Categories Selection */}
+                <div style={{background:"linear-gradient(145deg,rgba(15,23,42,0.8),rgba(30,41,59,0.6))", border:"1px solid rgba(6,182,212,0.2)", borderRadius:16, padding:28, marginBottom:20}}>
+                    <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16}}>
+                        <div style={{display:"flex", alignItems:"center", gap:8}}>
+                            <div style={{width:8, height:8, borderRadius:"50%", background:"#06b6d4"}}/>
+                            <span style={{fontSize:15, fontWeight:700, color:"#06b6d4"}}>CATEGORIES</span>
+                        </div>
+                        <div style={{display:"flex", gap:6}}>
+                            <button onClick={() => setSelectedCategories(categories.map(c => c))}
+                                style={{background:"rgba(6,182,212,0.1)", border:"1px solid rgba(6,182,212,0.3)", color:"#06b6d4", borderRadius:6, padding:"4px 10px", cursor:"pointer", fontFamily:"monospace", fontSize:11}}>
+                                SELECT ALL
+                            </button>
+                            <button onClick={() => setSelectedCategories([])}
+                                style={{background:"rgba(100,116,139,0.1)", border:"1px solid rgba(100,116,139,0.3)", color:"#94a3b8", borderRadius:6, padding:"4px 10px", cursor:"pointer", fontFamily:"monospace", fontSize:11}}>
+                                CLEAR
+                            </button>
+                        </div>
+                    </div>
+
+                    <div style={{display:"flex", flexDirection:"column", gap:6}}>
+                        {categories.map(cat => {
+                            const isSelected = selectedCategories.includes(cat)
+                            const questionCount = getCategoryQuestionCounts(cat)
+                            const hasAllDifficulties = selectedDifficulties.every(d => questions[cat]?.[d])
+                            const missingCount = selectedDifficulties.filter(d => !questions[cat]?.[d]).length
+
+                            return (
+                                <div key={cat}
+                                    onClick={() => {
+                                        if (isSelected) {
+                                            setSelectedCategories(selectedCategories.filter(c => c !== cat))
+                                        } else {
+                                            setSelectedCategories([...selectedCategories, cat])
+                                        }
+                                    }}
+                                    style={{
+                                        display:"flex", justifyContent:"space-between", alignItems:"center",
+                                        padding:"12px 16px", borderRadius:10, cursor:"pointer",
+                                        background: isSelected ? "rgba(6,182,212,0.1)" : "#0f172a",
+                                        border: isSelected ? "1px solid rgba(6,182,212,0.4)" : "1px solid #1e293b",
+                                        transition:"all 0.15s"
+                                    }}
+                                >
+                                    <div style={{display:"flex", alignItems:"center", gap:12}}>
+                                        <div style={{
+                                            width:20, height:20, borderRadius:4,
+                                            border: isSelected ? "2px solid #06b6d4" : "2px solid #334155",
+                                            background: isSelected ? "#06b6d4" : "transparent",
+                                            display:"flex", alignItems:"center", justifyContent:"center",
+                                            fontSize:12, color:"#0f172a", fontWeight:800,
+                                            transition:"all 0.15s"
+                                        }}>
+                                            {isSelected && "✓"}
+                                        </div>
+                                        <span style={{fontWeight:700, color: isSelected ? "#e2e8f0" : "#64748b"}}>{cat}</span>
+                                    </div>
+                                    <div style={{display:"flex", alignItems:"center", gap:8}}>
+                                        {missingCount > 0 && isSelected && (
+                                            <span style={{fontSize:10, color:"#f59e0b", background:"rgba(245,158,11,0.1)", padding:"2px 8px", borderRadius:4}}>
+                                                {missingCount} empty slot{missingCount > 1 ? "s" : ""}
+                                            </span>
+                                        )}
+                                        <span style={{
+                                            fontSize:11,
+                                            color: questionCount >= 5 ? "#10b981" : questionCount >= 3 ? "#f59e0b" : "#ef4444",
+                                            background: questionCount >= 5 ? "rgba(16,185,129,0.1)" : questionCount >= 3 ? "rgba(245,158,11,0.1)" : "rgba(239,68,68,0.1)",
+                                            padding:"2px 8px", borderRadius:4
+                                        }}>
+                                            {questionCount} question{questionCount !== 1 ? "s" : ""}
+                                        </span>
+                                    </div>
+                                </div>
+                            )
+                        })}
+                    </div>
+                </div>
+
+                {/* Difficulty Selection */}
+                <div style={{background:"linear-gradient(145deg,rgba(15,23,42,0.8),rgba(30,41,59,0.6))", border:"1px solid rgba(139,92,246,0.2)", borderRadius:16, padding:28, marginBottom:20}}>
+                    <div style={{display:"flex", alignItems:"center", gap:8, marginBottom:16}}>
+                        <div style={{width:8, height:8, borderRadius:"50%", background:"#8b5cf6"}}/>
+                        <span style={{fontSize:15, fontWeight:700, color:"#8b5cf6"}}>DIFFICULTY LEVELS</span>
+                    </div>
+
+                    <div style={{display:"flex", gap:8, flexWrap:"wrap"}}>
+                        {[100, 200, 300, 400, 500].map(d => {
+                            const isSelected = selectedDifficulties.includes(d)
+                            return (
+                                <button key={d}
+                                    onClick={() => {
+                                        if (isSelected) {
+                                            setSelectedDifficulties(selectedDifficulties.filter(x => x !== d))
+                                        } else {
+                                            setSelectedDifficulties([...selectedDifficulties, d].sort((a,b) => a - b))
+                                        }
+                                    }}
+                                    style={{
+                                        padding:"10px 20px", borderRadius:10, cursor:"pointer",
+                                        fontFamily:"monospace", fontWeight:800, fontSize:16,
+                                        background: isSelected ? "rgba(139,92,246,0.15)" : "#0f172a",
+                                        border: isSelected ? "2px solid #8b5cf6" : "2px solid #1e293b",
+                                        color: isSelected ? "#8b5cf6" : "#475569",
+                                        transition:"all 0.15s"
+                                    }}
+                                >
+                                    ${d}
+                                </button>
+                            )
+                        })}
+                    </div>
+                </div>
+
+                {/* Summary + Start */}
+                <div style={{background:"linear-gradient(145deg,rgba(15,23,42,0.8),rgba(30,41,59,0.6))", border:"1px solid rgba(16,185,129,0.2)", borderRadius:16, padding:20, marginBottom:20}}>
+                    <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap:"wrap", gap:12}}>
+                        <div style={{display:"flex", gap:16}}>
+                            <div>
+                                <div style={{fontSize:10, color:"#475569", letterSpacing:1}}>CATEGORIES</div>
+                                <div style={{fontSize:24, fontWeight:800, color:"#06b6d4"}}>{selectedCategories.length}</div>
+                            </div>
+                            <div>
+                                <div style={{fontSize:10, color:"#475569", letterSpacing:1}}>DIFFICULTIES</div>
+                                <div style={{fontSize:24, fontWeight:800, color:"#8b5cf6"}}>{selectedDifficulties.length}</div>
+                            </div>
+                            <div>
+                                <div style={{fontSize:10, color:"#475569", letterSpacing:1}}>TOTAL SLOTS</div>
+                                <div style={{fontSize:24, fontWeight:800, color:"#10b981"}}>{totalSelected}</div>
+                            </div>
+                        </div>
+                        <div style={{fontSize:11, color:"#475569"}}>
+                            {teams.length} team{teams.length !== 1 ? "s" : ""} playing
+                        </div>
+                    </div>
+                </div>
+
+                <div style={{display:"flex", gap:10}}>
+    <button onClick={() => setGameState("teams")}
+        disabled={selectedCategories.length === 0 || selectedDifficulties.length === 0}
+        style={{flex:1, padding:"14px 0", borderRadius:12, border:"none",
+            cursor: selectedCategories.length === 0 || selectedDifficulties.length === 0 ? "not-allowed" : "pointer",
+            background: selectedCategories.length === 0 || selectedDifficulties.length === 0 ? "#1e293b" : "linear-gradient(135deg,#ec4899,#8b5cf6,#06b6d4)",
+            color: selectedCategories.length === 0 || selectedDifficulties.length === 0 ? "#475569" : "#fff",
+            fontSize:18, fontWeight:900, fontFamily:"monospace", transition:"all 0.3s",
+            boxShadow: selectedCategories.length > 0 && selectedDifficulties.length > 0 ? "0 8px 32px rgba(139,92,246,0.3)" : "none"
+        }}>
+        NEXT: ADD TEAMS ▶
+    </button>
+</div>
+            </div>
+        </div>
+    )
+}
   // ======== GAME BOARD ========
   return (
-    <div style={{minHeight:"100vh",background:"#080c16",display:"flex",flexDirection:"column",color:"#e2e8f0",fontFamily:"monospace",position:"relative"}}>
+    <div style={{minHeight:"100vh",background:"#080c16",display:"flex",flexDirection:"column",color:"#e2e8f0",fontFamily:"monospace",position:"relative",overflow:"hidden",width:"100%"}}>
       <ParticlesBg />
       <div className="scanlines"/>
       <ConfettiBurst active={showConfetti} />
 
-      <div style={{flex:1,padding:"16px 16px 0",position:"relative",zIndex:1}}>
+      <div style={{flex:1,padding:"16px 16px 0",position:"relative",zIndex:1,maxWidth:"100vw",overflow:"hidden"}}>
         <div style={{maxWidth:1280,margin:"0 auto"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,flexWrap:"wrap",gap:10}}>
-            <h1 style={{fontSize:28,fontWeight:900,background:"linear-gradient(90deg,#06b6d4,#8b5cf6)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>JEOPARDY.exe</h1>
+            <h1 className="gradient-text" style={{fontSize:28,fontWeight:900,background:"linear-gradient(90deg,#06b6d4,#8b5cf6)"}}>JEOPARDY.exe</h1>
             <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
               <button onClick={() => setShowWheel(true)} className="btn-action" style={{background:"rgba(139,92,246,0.12)",color:"#a78bfa",borderColor:"rgba(139,92,246,0.3)"}}>🎡 SPIN</button>
               {currentTeam && (
@@ -221,45 +469,47 @@ export default function JeopardyGame() {
             </div>
           </div>
 
-          <div style={{background:"linear-gradient(145deg,rgba(15,23,42,0.6),rgba(30,41,59,0.4))",border:"1px solid rgba(139,92,246,0.15)",borderRadius:16,padding:16,backdropFilter:"blur(10px)"}}>
-            <div style={{display:"grid",gridTemplateColumns:"repeat("+categories.length+",1fr)",gap:10}}>
-              {categories.map((cat, ci) => (
-                <div key={cat} style={{display:"flex",flexDirection:"column",gap:8}}>
-                  <div style={{background:"linear-gradient(135deg,"+CAT_COLORS[ci%CAT_COLORS.length]+"22,"+CAT_COLORS[ci%CAT_COLORS.length]+"08)",border:"1px solid "+CAT_COLORS[ci%CAT_COLORS.length]+"44",borderRadius:10,padding:"10px 8px",textAlign:"center",minHeight:52,display:"flex",alignItems:"center",justifyContent:"center"}}>
-                    <span style={{fontSize:11,fontWeight:800,color:CAT_COLORS[ci%CAT_COLORS.length],letterSpacing:0.5,lineHeight:1.3}}>{cat.toUpperCase()}</span>
-                  </div>
-                  {DIFFICULTY_LEVELS.map((pts, ri) => {
-                    const key = cat + "-" + pts;
-                    const isUsed = usedQuestions[key];
-                    const hasQ = questions[cat] && questions[cat][pts];
-                    const cellIdx = ci * 5 + ri;
-                    const cc = CAT_COLORS[ci%CAT_COLORS.length];
-                    return (
-                      <button key={pts} onClick={() => selectQuestion(cat, pts)} disabled={isUsed || !hasQ}
-                        style={{
-                          width:"100%",aspectRatio:"1",borderRadius:10,fontSize:22,fontWeight:900,fontFamily:"monospace",
-                          cursor:isUsed||!hasQ?"not-allowed":"pointer",transition:"all 0.25s cubic-bezier(0.4,0,0.2,1)",
-                          animation:boardReady?"cellAppear 0.4s ease-out "+(cellIdx*0.04)+"s both":"none",
-                          border:isUsed?"1px solid #1e293b":!hasQ?"1px solid #1e293b":"1px solid "+cc+"55",
-                          background:isUsed?"rgba(15,23,42,0.5)":!hasQ?"rgba(15,23,42,0.3)":"linear-gradient(135deg,"+cc+"18,"+cc+"08)",
-                          color:isUsed?"#334155":!hasQ?"#1e293b":cc,
-                          boxShadow:isUsed||!hasQ?"none":"inset 0 0 20px "+cc+"08, 0 2px 8px rgba(0,0,0,0.2)",
-                          display:"flex",alignItems:"center",justifyContent:"center",
-                        }}
-                        onMouseEnter={e => {if(!isUsed&&hasQ){e.target.style.transform="scale(1.06)";e.target.style.boxShadow="0 0 25px "+cc+"33, inset 0 0 30px "+cc+"15";}}}
-                        onMouseLeave={e => {e.target.style.transform="scale(1)";e.target.style.boxShadow=isUsed||!hasQ?"none":"inset 0 0 20px "+cc+"08, 0 2px 8px rgba(0,0,0,0.2)";}}
-                      >{isUsed ? "✓" : "$"+pts}</button>
-                    );
-                  })}
-                </div>
-              ))}
-            </div>
+          <div style={{background:"linear-gradient(145deg,rgba(15,23,42,0.6),rgba(30,41,59,0.4))",border:"1px solid rgba(139,92,246,0.15)",borderRadius:16,padding:16,backdropFilter:"blur(10px)",overflowX:"auto"}}>
+            <div style={{display:"grid",gridTemplateColumns:"repeat("+categories.length+",minmax(120px,1fr))",gridTemplateRows:"auto repeat("+selectedDifficulties.length+",1fr)",gap:10,minWidth:categories.length * 130}}>
+    {/* Header row */}
+    {categories.map((cat, ci) => (
+        <div key={"h-"+cat} style={{background:"linear-gradient(135deg,"+CAT_COLORS[ci%CAT_COLORS.length]+"22,"+CAT_COLORS[ci%CAT_COLORS.length]+"08)",border:"1px solid "+CAT_COLORS[ci%CAT_COLORS.length]+"44",borderRadius:10,padding:"10px 8px",textAlign:"center",display:"flex",alignItems:"center",justifyContent:"center"}}>
+            <span style={{fontSize:11,fontWeight:800,color:CAT_COLORS[ci%CAT_COLORS.length],letterSpacing:0.5,lineHeight:1.3}}>{cat.toUpperCase()}</span>
+        </div>
+    ))}
+    {/* Question cells - row by row */}
+    {selectedDifficulties.map((pts, ri) => (
+        categories.map((cat, ci) => {
+            const key = cat + "-" + pts;
+            const isUsed = usedQuestions[key];
+            const hasQ = questions[cat] && questions[cat][pts];
+            const cellIdx = ci * selectedDifficulties.length + ri;
+            const cc = CAT_COLORS[ci%CAT_COLORS.length];
+            return (
+                <button key={key} onClick={() => selectQuestion(cat, pts)} disabled={isUsed || !hasQ}
+                    style={{
+                        width:"100%",padding:"20px 0",borderRadius:10,fontSize:22,fontWeight:900,fontFamily:"monospace",
+                        cursor:isUsed||!hasQ?"not-allowed":"pointer",transition:"all 0.25s cubic-bezier(0.4,0,0.2,1)",
+                        animation:boardReady?"cellAppear 0.4s ease-out "+(cellIdx*0.04)+"s both":"none",
+                        border:isUsed?"1px solid #1e293b":!hasQ?"1px solid #1e293b":"1px solid "+cc+"55",
+                        background:isUsed?"rgba(15,23,42,0.5)":!hasQ?"rgba(15,23,42,0.3)":"linear-gradient(135deg,"+cc+"18,"+cc+"08)",
+                        color:isUsed?"#334155":!hasQ?"#1e293b":cc,
+                        boxShadow:isUsed||!hasQ?"none":"inset 0 0 20px "+cc+"08, 0 2px 8px rgba(0,0,0,0.2)",
+                        display:"flex",alignItems:"center",justifyContent:"center",
+                    }}
+                    onMouseEnter={e => {if(!isUsed&&hasQ){e.target.style.transform="scale(1.06)";e.target.style.boxShadow="0 0 25px "+cc+"33, inset 0 0 30px "+cc+"15";}}}
+                    onMouseLeave={e => {e.target.style.transform="scale(1)";e.target.style.boxShadow=isUsed||!hasQ?"none":"inset 0 0 20px "+cc+"08, 0 2px 8px rgba(0,0,0,0.2)";}}
+                >{isUsed ? "✓" : "$"+pts}</button>
+            )
+        })
+    ))}
+</div>
           </div>
         </div>
       </div>
 
       {/* Scoreboard */}
-      <div style={{background:"linear-gradient(180deg,rgba(15,23,42,0.95),rgba(8,12,22,0.98))",borderTop:"1px solid rgba(6,182,212,0.15)",padding:16,marginTop:12,position:"relative",zIndex:1}}>
+      <div style={{background:"linear-gradient(180deg,rgba(15,23,42,0.95),rgba(8,12,22,0.98))",borderTop:"1px solid rgba(6,182,212,0.15)",padding:16,marginTop:12,position:"relative",zIndex:1,maxWidth:"100vw"}}>
         <div style={{maxWidth:1280,margin:"0 auto"}}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
             <span style={{fontSize:14,fontWeight:700,color:"#06b6d4"}}>SCOREBOARD</span>
@@ -285,10 +535,10 @@ export default function JeopardyGame() {
                       </div>
                     </div>
                     <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:4}}>
-                      {DIFFICULTY_LEVELS.map(p => (<button key={p} onClick={() => updateScore(i,p)} style={{background:"rgba(16,185,129,0.1)",border:"1px solid rgba(16,185,129,0.25)",color:"#10b981",fontSize:10,fontWeight:700,padding:"6px 0",borderRadius:6,cursor:"pointer",fontFamily:"monospace",transition:"all 0.15s"}}>+{p}</button>))}
+                      {selectedDifficulties.map(p => (<button key={p} onClick={() => updateScore(i,p)} style={{background:"rgba(16,185,129,0.1)",border:"1px solid rgba(16,185,129,0.25)",color:"#10b981",fontSize:10,fontWeight:700,padding:"6px 0",borderRadius:6,cursor:"pointer",fontFamily:"monospace",transition:"all 0.15s"}}>+{p}</button>))}
                     </div>
                     <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:4,marginTop:4}}>
-                      {DIFFICULTY_LEVELS.map(p => (<button key={"m"+p} onClick={() => updateScore(i,-p)} style={{background:"rgba(239,68,68,0.08)",border:"1px solid rgba(239,68,68,0.2)",color:"#ef4444",fontSize:10,fontWeight:700,padding:"6px 0",borderRadius:6,cursor:"pointer",fontFamily:"monospace",transition:"all 0.15s"}}>-{p}</button>))}
+                      {selectedDifficulties.map(p => (<button key={"m"+p} onClick={() => updateScore(i,-p)} style={{background:"rgba(239,68,68,0.08)",border:"1px solid rgba(239,68,68,0.2)",color:"#ef4444",fontSize:10,fontWeight:700,padding:"6px 0",borderRadius:6,cursor:"pointer",fontFamily:"monospace",transition:"all 0.15s"}}>-{p}</button>))}
                     </div>
                   </div>
                 );
