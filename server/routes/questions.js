@@ -1,18 +1,21 @@
 const pool = require('../config/db')
 const express = require('express')
 const router = express.Router()
+const verifyToken = require('../middleware/auth');
 
 const DIFFICULTIES = [100, 200, 300, 400, 500]
 
 // GET /api/questions - Returns all questions with category name
-router.get('/', async (req, res) => {
+router.get('/', verifyToken,  async (req, res) => {
     try {
         const result = await pool.query(`
-            SELECT q.id, q.category_id, c.name AS category_name, q.difficulty, q.answer, q.time_limit
+            SELECT q.id, q.category_id, c.name AS category_name, q.difficulty, q.question, q.answer, q.time_limit
             FROM questions q 
             JOIN categories c ON q.category_id = c.id
+            WHERE q.user_id = $1
             ORDER BY q.difficulty ASC
-        `);
+            `, [req.user.userId]
+        );
 
         res.json(result.rows)
     } catch (err) {
@@ -23,11 +26,11 @@ router.get('/', async (req, res) => {
 });
 
 // POST /api/questions - Create a new question
-router.post('/', async (req, res) => {
+router.post('/', verifyToken, async (req, res) => {
     const { category_id, difficulty, question, answer, time_limit } = req.body;
 
     if (!category_id || !difficulty || !question || !answer) {
-        res.status(404).json({
+        return res.status(400).json({
             error: 'category_id, difficulty, question, and answer are required'
         })
     }
@@ -41,21 +44,21 @@ router.post('/', async (req, res) => {
     try {
         // Check if category exists
         const category = await pool.query(
-            'SELECT id FROM categories WHERE id = $1',
-            [category_id]
+            'SELECT id FROM categories WHERE id = $1 AND user_id = $2',
+            [category_id, req.user.userId]
             );
         
         if (category.rows.length === 0) {
-            return res.status(404).json({
-                error: 'Category not found'
+            return res.status(403).json({
+                error: 'Not authorized'
             });
         }
 
         const result = await pool.query (
-            `INSERT INTO questions (category_id, difficulty, question, answer, time_limit
-            VALUES ($1, $2, $3, $4, $5)
+            `INSERT INTO questions (category_id, difficulty, question, answer, time_limit, user_id)
+            VALUES ($1, $2, $3, $4, $5, $6)
             RETURNING id, category_id, difficulty, question, answer, time_limit`,
-            [category_id, difficulty, question, answer, time_limit || 30]
+            [category_id, difficulty, question, answer, time_limit || 30, req.user.userId]
         );
 
         res.status(201).json(result.rows[0]);
@@ -67,14 +70,14 @@ router.post('/', async (req, res) => {
 });
 
 // PUT /api/questions/:id - Update a question
-router.put('/:id', async (req, res) => {
+router.put('/:id', verifyToken, async (req, res) => {
     const { id } = req.params;
     const { category_id, difficulty, question, answer, time_limit } = req.body;
 
     // Build only the fields that were sent
     const fields = [];
     const values = [];
-    const counter = 1;
+    let counter = 1;
 
     if (category_id !== undefined) {
         fields.push(`category_id = $${counter++}`);
@@ -108,16 +111,17 @@ router.put('/:id', async (req, res) => {
     }
 
     values.push(id);
+    values.push(req.user.userId);
 
     try {
         const result = await pool.query(
-        `UPDATE questions SET ${fields.join(', ')} WHERE id = $${counter} RETURNING id`,
-        [values]
+        `UPDATE questions SET ${fields.join(', ')} WHERE id = $${counter} AND user_id = $${counter + 1} RETURNING id`,
+        values
         );
 
         if (result.rows.length === 0) {
-            return res.status(404).json({
-                error: 'Question not found'
+            return res.status(403).json({
+                error: 'Not authorized'
             });
         }
 
@@ -130,18 +134,18 @@ router.put('/:id', async (req, res) => {
 });
 
 // DELETE /api/questions/:id - Delete a question
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', verifyToken, async (req, res) => {
     const { id } = req.params;
 
     try {
         const result = await pool.query(
-            'DELETE from questions WHERE id = $1 RETURNING id',
-            [id]
+            'DELETE from questions WHERE id = $1 AND user_id = $2 RETURNING id',
+            [id, req.user.userId]
         );
 
         if (result.rows.length === 0) {
-            return res.status(404).json({
-                error: 'Question not found'
+            return res.status(403).json({
+                error: 'Not authorized'
             });
         }
 

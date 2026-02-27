@@ -3,11 +3,12 @@ const router = express.Router();
 const pool = require('../config/db');
 const verifyToken = require('../middleware/auth');
 
-// GET /api/categories - Return all categories for the logged in user
-router.get('/', async (req, res) => {
+// GET /api/categories - Public, returns all categories for the logged in user
+router.get('/', verifyToken, async (req, res) => {
     try {
         const result = await pool.query(
-            'SELECT id, name FROM categories ORDER BY name ASC'
+            'SELECT id, name FROM categories WHERE user_id = $1 ORDER BY name ASC',
+            [req.user.userId]
         );
         res.json(result.rows);
     } catch (err) {
@@ -18,7 +19,7 @@ router.get('/', async (req, res) => {
 });
 
 // POST /api/categories - Create a new category
-router.post('/', async (req, res) => {
+router.post('/', verifyToken, async (req, res) => {
     const { name } = req.body;
 
     if (!name || !name.trim()) {
@@ -29,8 +30,8 @@ router.post('/', async (req, res) => {
 
     try {
         const result = await pool.query(
-            'INSERT INTO categories (name) VALUES ($1) RETURNING id, name',
-            [name.trim()]
+            'INSERT INTO categories (name, user_id) VALUES ($1, $2) RETURNING id, name',
+            [name.trim(), req.user.userId]
         );
 
         res.status(201).json(result.rows[0]);
@@ -48,7 +49,7 @@ router.post('/', async (req, res) => {
 });
 
 // PUT /api/categories/:id - Update a category
-router.put('/:id', async (req, res) => {
+router.put('/:id', verifyToken, async (req, res) => {
     const { name } = req.body;
     const { id } = req.params;
 
@@ -60,13 +61,13 @@ router.put('/:id', async (req, res) => {
 
     try {
         const result = await pool.query(
-            'UPDATE categories SET name = $1 WHERE id = $2 RETURNING id, name',
-            [name.trim(), id]
+            'UPDATE categories SET name = $1 WHERE id = $2 AND user_id = $3 RETURNING id, name',
+            [name.trim(), id, req.user.userId]
         );
 
         if (result.rows.length === 0) {
-            return res.status(404).json({
-                error: 'Category not found'
+            return res.status(403).json({
+                error: 'Not authorized'
             });
         }
 
@@ -79,18 +80,18 @@ router.put('/:id', async (req, res) => {
 });
 
 // DELETE /api/categories/:id - Delete a category
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', verifyToken, async (req, res) => {
     const { id } = req.params;
 
     try {
         const result = await pool.query(
-            'DELETE FROM categories WHERE id = $1 RETURNING id',
-            [id]
+            'DELETE FROM categories WHERE id = $1 AND user_id = $2 RETURNING id',
+            [id, req.user.userId]
         );
 
         if (result.rows.length === 0) {
-            return res.status(404).json({
-                error: 'Category not found'
+            return res.status(403).json({
+                error: 'Not authorized'
             });
         }
 
