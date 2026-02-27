@@ -6,7 +6,7 @@ require('dotenv').config();
 // Import route files
 const categoriesRouter = require('./routes/categories');
 const questionsRouter = require('./routes/questions');
-const { timeStamp } = require('console');
+const authRouter = require('./routes/auth');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -19,6 +19,7 @@ app.use(express.static(path.join(__dirname, 'public'))); // Servers admin panel
 // ─── ROUTES ─────────────────────────────────────────────────────
 app.use('/api/categories', categoriesRouter);
 app.use('/api/questions', questionsRouter);
+app.use('/api/auth', authRouter);
 
 // ─── HEALTH CHECK ────────────────────────────────────────────────
 app.get('/api/health', (req, res) => {

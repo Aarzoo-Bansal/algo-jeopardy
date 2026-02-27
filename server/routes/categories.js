@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../config/db');
+const verifyToken = require('../middleware/auth');
 
 // GET /api/categories - Return all categories for the logged in user
 router.get('/', async (req, res) => {

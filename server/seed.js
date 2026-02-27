@@ -1,6 +1,6 @@
 /* Run this Script to populate the database with Default Questions */
 
-const { db } = require('./db');
+const { db } = require('./config/db');
 
 // Clear existing data
 db.exec('DELETE FROM questions');

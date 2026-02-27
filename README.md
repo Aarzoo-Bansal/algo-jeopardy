@@ -90,7 +90,7 @@ algo-jeopardy/
 │   │   │   ├── ConfettiBurst.jsx   # Confetti celebration
 │   │   │   └── ScorePop.jsx        # Score change animation
 │   │   ├── data/
-│   │   │   └── defaultQuestions.js  # WHEEL_COLORS constant
+│   │   │   └── constants.js  # WHEEL_COLORS constant
 │   │   ├── utils/
 │   │   │   └── geometry.js          # SVG arc math utilities
 │   │   ├── style/

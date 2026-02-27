@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { polarToCartesian, describeArc } from "../utils/geometry";
-import { WHEEL_COLORS } from "../data/defaultQuestions";
+import { WHEEL_COLORS } from "../data/constants";
 
 export default function SpinWheel({ teams, onClose, availableTeams, onTeamSelected }) {
   const [rotation, setRotation] = useState(0);
