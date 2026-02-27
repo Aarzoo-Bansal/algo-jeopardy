@@ -19,7 +19,7 @@ const CAT_COLORS = ["#06b6d4", "#8b5cf6", "#ec4899", "#f59e0b", "#10b981", "#3b8
 // MAIN GAME
 // =====================================================
 export default function JeopardyGame() {
-    const { authHeaders } = useAuth();
+  const { authHeaders } = useAuth();
   const [gameState, setGameState] = useState("config");
   const [teams, setTeams] = useState([]);
   const [usedQuestions, setUsedQuestions] = useState({});
@@ -42,7 +42,7 @@ export default function JeopardyGame() {
   const [selectedCategories, setSelectedCategories] = useState([]);
   const [selectedDifficulties, setSelectedDifficulties] = useState([100, 200, 300, 400, 500]);
   const [gameTitle, setGameTitle] = useState("JEOPARDY");
-
+  
   useEffect(() => {
     if (gameState === "config") {
       setSelectedCategories(categories.map(c => c))

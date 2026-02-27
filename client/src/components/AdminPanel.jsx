@@ -164,7 +164,7 @@ export default function AdminPanel() {
             <div style={{ position: "relative", zIndex: 2, maxWidth: 900, margin: "0 auto" }}>
 
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
-                    <h1 className="gradient-text" style={{ fontSize: 32, fontWeight: 900, background: "linear-gradient(135deg,#06b6d4,#8b5cf6)" }}>ADMIN PANEL</h1>
+                    <h1 className="gradient-text" style={{ fontSize: 32, fontWeight: 900 }}>ADMIN PANEL</h1>
                     <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
                         <a href="/" className="admin-link">← Back to Game</a>
                         <button

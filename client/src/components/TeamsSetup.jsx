@@ -33,7 +33,32 @@ export default function TeamsSetup({
             <div className="scanlines" />
             <div style={{ position: "relative", zIndex: 2, maxWidth: 850, margin: "0 auto" }}>
                 <div style={{ textAlign: "center", marginBottom: 40, paddingTop: 20 }}>
-                    <div style={{ display: "inline-block", padding: "6px 18px", borderRadius: 20, background: "#0b1a24", border: "1px solid rgba(6,182,212,0.2)", fontSize: 11, color: "#06b6d4", letterSpacing: 3, marginBottom: 16 }}>ALGORITHMS & DATA STRUCTURES</div>
+                    <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
+                        <button
+                            onClick={() => window.location.href = '/admin'}
+                            style={{
+                                background: "#0b1a24",
+                                border: "1px solid rgba(6,182,212,0.3)",
+                                color: "#06b6d4",
+                                borderRadius: 8,
+                                padding: "8px 16px",
+                                cursor: "pointer",
+                                fontFamily: "monospace",
+                                fontSize: 12,
+                                fontWeight: 700,
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 8
+                            }}
+                        >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="4 17 10 11 4 5" />
+                                <line x1="12" y1="19" x2="20" y2="19" />
+                            </svg>
+                            ADMIN PANEL
+                        </button>
+                    </div>
+                    <div style={{ display: "inline-block", padding: "6px 18px", borderRadius: 20, background: "#0b1a24", border: "1px solid rgba(6,182,212,0.2)", fontSize: 11, color: "#06b6d4", letterSpacing: 3, marginBottom: 16 }}>JEOPARDY GAME</div>
                     <h1 className="gradient-text" style={{ fontSize: "clamp(28px, 8vw, 56px)", fontWeight: 900, lineHeight: 1, background: "linear-gradient(135deg,#06b6d4 0%,#8b5cf6 25%,#ec4899 50%,#f59e0b 75%,#06b6d4 100%)", backgroundSize: "200% 200%", marginBottom: 16, letterSpacing: -1, animation: "glowShift 6s ease-in-out infinite" }}>{gameTitle || "JEOPARDY"}</h1>
                     <p style={{ color: "#9ba7b8", fontSize: "11px", background: "#0b1a24", display: "inline", boxDecorationBreak: "clone", padding: "6px 18px", borderRadius: "20px", letterSpacing: "3px" }}>{"> initialize_game() // v2.0"}</p>
                     {dbError && <p style={{ marginTop: 8, fontSize: 12, color: "#f59e0b" }}>⚠ {dbError}</p>}
