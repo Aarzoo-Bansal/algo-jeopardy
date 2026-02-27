@@ -93,6 +93,11 @@ export default function JeopardyGame() {
     return () => clearInterval(iv);
   }, [timerRunning, timeLeft]);
 
+  useEffect(() => {
+    if (availableTeams.length === 1 && !currentTeam && gameState === "playing") {
+      handleTeamSelected(availableTeams[0]);
+    }
+  }, [teamsPlayedThisRound]);
 
 
   const updateScore = (i, amt) => {
@@ -127,23 +132,52 @@ export default function JeopardyGame() {
   const flipCard = e => { e.stopPropagation(); setShowAnswer(p => !p); setCardFlipKey(p => p + 1); };
   const toggleTimer = () => setTimerRunning(!timerRunning);
   const resetTimer = () => { setTimeLeft(currentQuestion.time); setTimerRunning(false); };
+  
   const closeQuestion = () => {
     setUsedQuestions({ ...usedQuestions, [currentQuestion.category + "-" + currentQuestion.points]: true });
-    setCurrentQuestion(null); setShowAnswer(false); setTimerRunning(false);
+    setCurrentQuestion(null); 
+    setShowAnswer(false); 
+    setTimerRunning(false);
+
+    // Marking current team as played after they answer
+    if (currentTeam) {
+      const np = [...teamsPlayedThisRound, currentTeam];
+      setTeamsPlayedThisRound(np);
+      setCurrentTeam(null);
+
+      if (np.length === teams.length) {
+        setTimeout(() => setTeamsPlayedThisRound([]), 2000);
+      }
+    }
   };
+
   const resetGame = () => {
-    setGameState("config"); setTeams([]); setUsedQuestions({});
-    setCurrentQuestion(null); setShowAnswer(false); setShowWinner(false);
-    setTeamsPlayedThisRound([]); setCurrentTeam(null); setShowConfetti(false);
+    setGameState("config"); 
+    setTeams([]); 
+    setUsedQuestions({});
+    setCurrentQuestion(null); 
+    setShowAnswer(false); 
+    setShowWinner(false);
+    setTeamsPlayedThisRound([]); 
+    setCurrentTeam(null); 
+    setShowConfetti(false);
   };
+
   const handleTeamSelected = team => {
     setCurrentTeam(team);
-    const np = [...teamsPlayedThisRound, team];
-    setTeamsPlayedThisRound(np);
-    if (np.length === teams.length) setTimeout(() => setTeamsPlayedThisRound([]), 2000);
   };
-  const resetRound = () => { setTeamsPlayedThisRound([]); setCurrentTeam(null); };
-  const getWinners = () => { if (!teams.length) return []; const m = Math.max(...teams.map(t => t.score)); return teams.filter(t => t.score === m); };
+
+  const resetRound = () => { 
+    setTeamsPlayedThisRound([]); 
+    setCurrentTeam(null); 
+  };
+  
+  const getWinners = () => { 
+    if (!teams.length) return []; 
+    const m = Math.max(...teams.map(t => t.score)); 
+    return teams.filter(t => t.score === m); 
+  };
+
   const showWinnerModal = () => { setShowWinner(true); setShowConfetti(true); setTimeout(() => setShowConfetti(false), 4000); };
   const getRankMedal = idx => ["\u{1F947}", "\u{1F948}", "\u{1F949}"][idx] || (idx + 1 + ".");
   const sortedTeams = [...teams].sort((a, b) => b.score - a.score);
