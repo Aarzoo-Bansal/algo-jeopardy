@@ -67,7 +67,7 @@ export default function JeopardyGame() {
           return;
         }
         
-        const sorted = cats.sort((a, b) => a.display_order - b.display_order);
+        const sorted = cats.sort((a, b) => a.name.localeCompare(b.name));
         const names = sorted.map(c => c.name);
         const grouped = {}; names.forEach(n => grouped[n] = {});
         const pool = {};
