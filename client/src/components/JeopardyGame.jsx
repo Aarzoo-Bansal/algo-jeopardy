@@ -161,7 +161,22 @@ export default function JeopardyGame() {
     setTeamsPlayedThisRound([]); 
     setCurrentTeam(null); 
     setShowConfetti(false);
-  };
+    // Refetch all categories and questions from the API
+    setDbLoading(true);
+    Promise.all([
+        fetch(API_BASE_URL + "/categories", { headers: authHeaders() }).then(r => r.json()),
+        fetch(API_BASE_URL + "/questions", { headers: authHeaders() }).then(r => r.json())
+    ]).then(([cats, qs]) => {
+        if (!Array.isArray(cats) || !Array.isArray(qs)) { setDbLoading(false); return; }
+        const sorted = cats.sort((a, b) => a.name.localeCompare(b.name));
+        const names = sorted.map(c => c.name);
+        const grouped = {}; names.forEach(n => grouped[n] = {});
+        const pool = {};
+        qs.forEach(q => { const k = q.category_name + "-" + q.difficulty; if (!pool[k]) pool[k] = []; pool[k].push(q); });
+        names.forEach(cat => { DIFFICULTY_LEVELS.forEach(d => { const a = pool[cat + "-" + d] || []; if (a.length) { const p = a[Math.floor(Math.random() * a.length)]; grouped[cat][d] = { q: p.question, a: p.answer, time: p.time_limit || (d <= 200 ? 30 : d <= 400 ? 45 : 60) }; } }); });
+        setCategories(names); setQuestions(grouped); setDbLoading(false);
+    });
+};
 
   const handleTeamSelected = team => {
     setCurrentTeam(team);
