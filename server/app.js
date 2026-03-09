@@ -11,6 +11,8 @@ if (!process.env.JWT_SECRET) {
     process.exit(1);
 }
 
+const isTest = process.env.NODE_ENV === 'test';
+
 const apiLimiter = rateLimit({
     windowMs: 1 * 60 * 1000,
     max: 100,
@@ -36,8 +38,13 @@ app.use(express.json()); // Parse JSON request bodies
 app.use(express.static(path.join(__dirname, 'public'))); // Servers admin panel
 
 // ─── ROUTES ─────────────────────────────────────────────────────
-app.use('/api/categories', apiLimiter, categoriesRouter);
-app.use('/api/questions', apiLimiter, questionsRouter);
+if (!isTest) {
+    app.use('/api/categories', apiLimiter);
+    app.use('/api/questions', apiLimiter);
+}
+
+app.use('/api/categories', categoriesRouter);
+app.use('/api/questions', questionsRouter);
 app.use('/api/auth', authRouter);
 
 // ─── HEALTH CHECK ────────────────────────────────────────────────

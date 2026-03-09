@@ -6,20 +6,27 @@ const pool = require('../config/db');
 const rateLimit = require('express-rate-limit');
 const SALTROUNDS = 10;
 
+const isTest = process.env.NODE_ENV === 'test';
+const noOp = (req, res, next) => next();
+
 const baseConfig  = {
     windowMs: 15 * 60 * 1000,
     message: { error: 'Too many requests. Please try again later'}
 };
 
-const registerLimiter = rateLimit({
-    ...baseConfig,
-    max: 10 // maximum 10 attemps
-});
+const registerLimiter = isTest
+    ? noOp
+    : rateLimit({
+        ...baseConfig,
+        max: 10
+    });
 
-const loginLimiter = rateLimit({
-    ...baseConfig,
-    max: 5
-});
+const loginLimiter = isTest
+    ? noOp
+    : rateLimit({
+        ...baseConfig,
+        max: 5
+    });
 
 // POST /api/auth/register - Create a new account
 router.post('/register', registerLimiter, async (req, res) => {
