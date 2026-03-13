@@ -1,6 +1,6 @@
 const winston = require('winston');
 
-const isProduction = process.env.Node_ENV === 'production';
+const isProduction = process.env.NODE_ENV === 'production';
 
 // ===========================================
 // Custom Format
